@@ -28,3 +28,16 @@ For Prithvi/TerraMind model (`-SubName prithvi` \ `-SubName terramind`) and `-Mo
 ## Conda Environment for inference workflow
 
 Added an `environment.yml` file which can be used to easily build (`conda env create -f environment.yml`) a conda environment named *dafab* to ensure most of the necessary modules are present for the workflow (some still need to be installed manually).
+
+## ONNX convert of terratorch model
+` conda create -n py3_12 python=3.12` 
+
+ `conda activate py3_12`
+
+`pip install git+https://github.com/IBM/terratorch.git`
+
+`pip install onnx onnxruntime` 
+
+Run the script
+
+`python .\convert2onnx_terratorch.py -i "terramind_v1\\checkpoints.ckpt" -c "terramind_v1\\config.yaml" -o "terramind_v1_base_sen1floods11_s_896_without_clouds.onnx"` 
