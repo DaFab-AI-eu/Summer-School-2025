@@ -56,7 +56,7 @@ if (!(Test-Path $MetaDataJson)) {
 # b8a - nir08
 # b11 - swir16
 # b12 - swir22
-$("red", "green", "blue", "nir08", "swir16", "swir22", "scl") | ForEach-Object -Parallel {
+$("red", "green", "blue", "nir", "nir08", "swir16", "swir22", "scl") | ForEach-Object -Parallel {
     $target = Join-Path $Using:AssetsFolder "${_}_$Using:Resolution.nc"
 
     if (Test-Path $target) {
@@ -72,11 +72,18 @@ $("red", "green", "blue", "nir08", "swir16", "swir22", "scl") | ForEach-Object -
 if ($DebugVisualization) {
     $VisualFile = (Join-Path $VisualsFolder "rgb_$Resolution.tif")
     Write-Output "Generate visual for $TileId at $VisualFile... "
-    New-Item -ItemType Directory -Path (Split-Path -Parent $VisualFile) -ErrorAction Ignore | Out-Null
     python ".\scripts\t-generate-visual.py" -o $VisualFile rgb `
         --red (Join-Path $AssetsFolder "red_$Resolution.nc") `
         --green (Join-Path $AssetsFolder "green_$Resolution.nc") `
         --blue (Join-Path $AssetsFolder "blue_$Resolution.nc")
+
+    # "SWIR1,NIR,RED Composite"
+    $VisualFile = (Join-Path $VisualsFolder "swir_nir_red_$Resolution.tif")
+    Write-Output "Generate visual for $TileId at $VisualFile... "
+    python ".\scripts\t-generate-visual.py" -o $VisualFile rgb `
+        --red (Join-Path $AssetsFolder "swir16_$Resolution.nc") `
+        --green (Join-Path $AssetsFolder "nir_$Resolution.nc") `
+        --blue (Join-Path $AssetsFolder "red_$Resolution.nc")
 
     $VisualFile = (Join-Path $VisualsFolder "scl_$Resolution.tif")
     Write-Output "Generate visual for $TileId at $VisualFile... "

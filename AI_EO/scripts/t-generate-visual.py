@@ -79,12 +79,13 @@ def visualize_rgb(args: argparse.Namespace):
             for path in (red_path, green_path, blue_path)
         ]
     )
-
-    for band in ("red", "green", "blue"):
+    # "SWIR1,NIR,RED Composite" possible too
+    for band in dataset: # ("red", "green", "blue"):
         dataset[band] = dataset[band].astype("float32") * scale  # type: ignore
         dataset[band] = dataset[band].clip(0, 1)
-
-    dataset[["red", "green", "blue"]].isel(time=0).rio.to_raster(output)
+        dataset[band] = (dataset[band] * 255).round().clip(0, 255).astype(np.uint8)
+    # rgb = (rgb * 255).round().clip(0, 255).astype(np.uint8)
+    dataset.isel(time=0).rio.to_raster(output) # dataset[["red", "green", "blue"]].isel(time=0).rio.to_raster(output)
 
 
 def generate_visual_dataset(
