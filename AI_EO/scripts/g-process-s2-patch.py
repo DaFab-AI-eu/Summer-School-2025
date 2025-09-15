@@ -127,14 +127,16 @@ def run_prediction(
         [(0, 0), (pad_buffer, pad_buffer), (pad_buffer, pad_buffer), (0, 0)],
         mode="edge",
     )
-    data = np.permute_dims(
-        data, (0, 3, 1, 2)
-    )  # (batch, H, W, channels) -> (batch, channels, H, W)
+    # data = np.permute_dims(
+    #     data, (0, 3, 1, 2)
+    # )  # (batch, H, W, channels) -> (batch, channels, H, W)
+    data = data.transpose((0, 3, 1, 2))
     predicted = predict(
         model, data, mean=mean, std=std, dtype_save=dtype_save
     )  # data bands after batch transpose (input should be in format (bands (red,green,NIR), height, width))
 
-    out_val = np.permute_dims(predicted[0], (0, 2, 3, 1))
+    #out_val = np.permute_dims(predicted[0], (0, 2, 3, 1))
+    out_val = predicted[0].transpose((0, 2, 3, 1))
     out_val = softmax(out_val, axis=-1)
     predicted_cropped = {
         "output": crop_array(out_val, buffer=crop_buffer),

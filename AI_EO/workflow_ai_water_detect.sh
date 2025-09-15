@@ -7,11 +7,11 @@ CACHE_FOLDER="${2:-./data/cache}"
 TEMPORARY_FOLDER="${3:-./data/temporary}"
 MODEL="${4:-./model_v1.0.0.onnx}"
 SUB_NAME="${5:-prithvi}"
-PATCH_COUNT="${5:-2}"
-BATCH_SIZE="${6:-1}"
+PATCH_COUNT="${6:-2}"
+BATCH_SIZE="${7:-1}"
 # GPU on by default, pass “--no-gpu” as 4th arg to disable
 GPU_FLAG="--gpu"
-if [[ "${7:-}" == "--no-gpu" ]]; then
+if [[ "${8:-}" == "--no-gpu" ]]; then
   GPU_FLAG=""
 fi
 
@@ -32,6 +32,12 @@ PROCESS_FOLDER="$TEMPORARY_FOLDER/process/$TILE_ID"
 COMBINED_FOLDER="$TEMPORARY_FOLDER/final/$TILE_ID"
 CONTOURS_FOLDER="$TEMPORARY_FOLDER/contours/$TILE_ID"
 VRT_FILE="$CONTOURS_FOLDER/temp.vrt"
+
+# compute tile global mean std for bands (used in AI inferencing data preprocessing)
+# mean, std constant for any tile for Prithvi - https://github.com/zhu-xlab/SSL4EO-S12/blob/main/src/download_data/convert_rgb.py
+# Prithvi has means, stds https://github.com/IBM/terratorch/blob/d582857b7ae76f5ccd0ad9d9ebfb562582deebca/terratorch/models/backbones/prithvi_vit.py#L30C1-L31C66
+# bands for L2A S2 (without CIRRUS band in L1C - [1,2,3,8,10,11] instead of [1,2,3,8,11,12]) https://github.com/IBM/terratorch/blob/main/terratorch/models/backbones/terramind/model/terramind_register.py
+STATS_NORM_PATH="./stats/global_stats_s2l2a_${SUB_NAME}.json" # global_stats_s2l2a_terramind
 
 mkdir -p "$CACHE_FOLDER/json" "$ASSETS_FOLDER" "$PATCHES_FOLDER" "$PROCESS_FOLDER" "$CONTOURS_FOLDER" "$COMBINED_FOLDER" "$VISUAL_FOLDER"
 
@@ -60,6 +66,8 @@ parallel -j5 '
     -r "$RESOLUTION" "$METADATA_JSON"
   fi
 ' ::: $bands
+
+# wait
 
 
 # Generate visual
@@ -98,24 +106,21 @@ VALID_PATCHES_JSON=$(python ./scripts/t-filter-enumerate-patches.py --filter \
 VALID_PATCHES=($(echo "$VALID_PATCHES_JSON" | jq -r '.[0].patches | split(" ")[]'))
 echo "Found ${#VALID_PATCHES[@]} valid patches."
 
-# compute tile global mean std for bands (used in AI inferencing data preprocessing)
-# mean, std constant for any tile for Prithvi - https://github.com/zhu-xlab/SSL4EO-S12/blob/main/src/download_data/convert_rgb.py
-# Prithvi has means, stds https://github.com/IBM/terratorch/blob/d582857b7ae76f5ccd0ad9d9ebfb562582deebca/terratorch/models/backbones/prithvi_vit.py#L30C1-L31C66
-# bands for L2A S2 (without CIRRUS band in L1C - [1,2,3,8,10,11] instead of [1,2,3,8,11,12]) https://github.com/IBM/terratorch/blob/main/terratorch/models/backbones/terramind/model/terramind_register.py
-$STATS_PATH = "./stats/global_stats_s2l2a_${SUB_NAME}.json" # global_stats_s2l2a_terramind
+
 
 # Run AI inference on patches
 echo "Processing patches..."
 python ./scripts/g-process-s2-patch.py $GPU_FLAG \
-  --stats $STATS_PATH --dtype "float32" \
+  --stats "$STATS_NORM_PATH" --dtype "float32" \
   --model "$MODEL" --batch-size "$BATCH_SIZE" --output "$PROCESS_FOLDER" \
   "${VALID_PATCHES[@]}"
 
+
 echo "Building VRT file..."
-python ./scripts/t-build-vrt-file.py --output "$VRT_FILE" "$PROCESS_FOLDER"/*.tif
+python ./scripts/t-build-vrt-file.py --output "$VRT_FILE" "$PROCESS_FOLDER"/*.tiff
 
 # combine patches/sub-tiles (.tif) into one tile (.tif)
-$COMBINED_FILE = Join-Path $CACHE_FOLDER "observed_water_mask_${SUB_NAME}_v1.tif"
-echo "Generate $COMBINED_FILE... "
-python ./scripts/t-raster-translate.py --output $COMBINED_FILE -m $METADATA_JSON \
+FINAL_FILE="$COMBINED_FOLDER"/observed_water_mask_${SUB_NAME}.tiff
+echo "Generate $FINAL_FILE... "
+python ./scripts/t-raster-translate.py --output $FINAL_FILE -m $METADATA_JSON \
  $VRT_FILE -b "" -f

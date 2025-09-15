@@ -4,11 +4,21 @@
 
 ### Run the workflow
 
-- `workflow_ai_water_detect.ps1` to fetch metadata (+ assets) from AWS and compute water detection
+`workflow_ai_water_detect.ps1` to fetch metadata (+ assets) from AWS and compute water detection
 
 For Prithvi/TerraMind model (`-SubName prithvi` \ `-SubName terramind`) and `-Model` checkpoints (https://drive.google.com/drive/folders/1Z5UgCCamR5O8RnkhQhLLdOraOY1ZyF5o) and flag `-DebugVisualization` to visualize RGB image and Scene Classification Map
+
+Windows
 ```
 .\workflow_ai_water_detect.ps1 -Model "..\..\checkpoints\prithvi_v2\Prithvi-EO-V2-300M-TL-Sen1Floods11_s_896_without_clouds.onnx" -CacheFolder "..\..\val" -TemporaryFolder "..\..\val" -SubName prithvi -PatchCount -1 -PatchOverlap 150
+```
+Linux
+
+```
+path2dir=..
+chmod +x "./Summer-School-2025/AI_EO/workflow_ai_water_detect.sh"
+cd ./Summer-School-2025/AI_EO && ./workflow_ai_water_detect.sh S2A_46QHH_20240916_0_L2A \ 
+$path2dir/cache $path2dir/temp $path2dir/terramind_sen1floods11.onnx terramind -1 2
 ```
 
 ## Some tile ID to test the workflow on
