@@ -1,4 +1,4 @@
-Param ([string] $TileId = "S2A_46QHH_20240916_0_L2A",#"S2C_30SYJ_20250213_0_L2A",#"S2B_45RYJ_20200802_0_L2A",#"S2C_30SYJ_20250213_0_L2A",#"S2A_31PBS_20230923_0_L2A", #"S2B_45RYJ_20200802_0_L2A", #"S2B_30SYJ_20241110_0_L2A", #"S2C_30SYJ_20250213_0_L2A",
+Param ([string] $TileId = "S2A_46QHH_20240916_0_L2A",
     [string]$CacheFolder = ".\val",
     [string]$TemporaryFolder = ".\val",
     [string]$Model = "Prithvi-EO-V2-300M-TL-Sen1Floods11_w_t_s_896.onnx",
@@ -6,6 +6,7 @@ Param ([string] $TileId = "S2A_46QHH_20240916_0_L2A",#"S2C_30SYJ_20250213_0_L2A"
     [int]$PatchCount = 2,
     [int]$PatchOverlap = 100,
     [int]$PatchWidth = 224 * 4,
+    [int]$BatchSize = 1,
     [switch]$DebugVisualization)
 # "S2B_38NNL_20231120_0_L2A"
 # S2A_46QHH_20240916_0_L2A, S2B_46QHE_20231004_0_L2A
@@ -64,7 +65,7 @@ $("red", "green", "blue", "nir08", "swir16", "swir22", "scl") | ForEach-Object -
     else {
         Write-Output "Downloading $target..."
         #  uint16 ~ 241 M .nc assets (unit8 - 121 M .nc)
-        python ".\code\t-fetch-s2-tile.py" -o $target -b $_ -r $Using:Resolution $Using:MetaDataJson -p
+        python ".\scripts\t-fetch-s2-tile.py" -o $target -b $_ -r $Using:Resolution $Using:MetaDataJson -p
     }
 }
 
@@ -72,14 +73,14 @@ if ($DebugVisualization) {
     $VisualFile = (Join-Path $VisualsFolder "rgb_$Resolution.tif")
     Write-Output "Generate visual for $TileId at $VisualFile... "
     New-Item -ItemType Directory -Path (Split-Path -Parent $VisualFile) -ErrorAction Ignore | Out-Null
-    python ".\code\t-generate-visual.py" -o $VisualFile rgb `
+    python ".\scripts\t-generate-visual.py" -o $VisualFile rgb `
         --red (Join-Path $AssetsFolder "red_$Resolution.nc") `
         --green (Join-Path $AssetsFolder "green_$Resolution.nc") `
         --blue (Join-Path $AssetsFolder "blue_$Resolution.nc")
 
     $VisualFile = (Join-Path $VisualsFolder "scl_$Resolution.tif")
     Write-Output "Generate visual for $TileId at $VisualFile... "
-    python ".\code\t-generate-visual.py" `
+    python ".\scripts\t-generate-visual.py" `
         --output $VisualFile scl (Join-Path $AssetsFolder "scl_$Resolution.nc")
 }
 
@@ -97,13 +98,13 @@ $("red", "green", "blue", "nir08", "swir16", "swir22", "scl") | ForEach-Object {
 
 Write-Output "filepaths to split $filepaths"
 New-Item -ItemType Directory -Path $PatchesFolder -ErrorAction Ignore | Out-Null
-python ".\code\t-split-s2-tile.py" -o $PatchesFolder -c $PatchCount  --overlap $PatchOverlap `
+python ".\scripts\t-split-s2-tile.py" -o $PatchesFolder -c $PatchCount  --overlap $PatchOverlap `
  --width $PatchWidth --height $PatchHeight $filepaths
 
 # filter patches with a lot missing data & clouds
 #$valid_patches = Get-ChildItem (Join-Path $PatchesFolder "*.nc")
 $valid_patches = ((
-    python ".\code\t-filter-enumerate-patches.py" `
+    python ".\scripts\t-filter-enumerate-patches.py" `
         --filter --max-bad-pixels 0.99 --max-cloud-pixels 1 --min-water-pixels 1e-5 `
         "${PatchesFolder}/*.nc"
     ) | ConvertFrom-Json)[0].patches.Split()
@@ -111,17 +112,17 @@ $n_valid_patches = $valid_patches.Length
 Write-Output "Found ${n_valid_patches} valid patches... "
 
 # process patches
-# model (checkpoints - https://drive.google.com/drive/folders/1FxTOisQSaV1_wR720Y_tF-wr59hqVD4j)
 Write-Output "Process (AI inference) ${n_valid_patches} valid patches... "
-python ".\code\g-process-s2-patch.py" --output $ProcessFolder --model $Model --stats $StatsPath --dtype "float32" @valid_patches
+python ".\scripts\g-process-s2-patch.py" --output $ProcessFolder --model $Model `
+    --stats $StatsPath --dtype "float32" --batch-size $BatchSize @valid_patches
 
 $VrtFile = (Join-Path $ContoursFolder "temp.vrt")
 Write-Output "Build vrt ($VrtFile) to combine patches... "
-python ".\code\t-build-vrt-file.py" --output $VrtFile @(Get-ChildItem $ProcessFolder)
+python ".\scripts\t-build-vrt-file.py" --output $VrtFile @(Get-ChildItem $ProcessFolder)
 
 # combine patches/sub-tiles (.tif) into one tile (.tif)
 $CombinedTiff = Join-Path $CombinedFolder "observed_water_mask_${SubName}_v1.tif"
 Write-Output "Generate $TileId at $CombinedTiff... "
-python ".\code\t-raster-translate.py" --output $CombinedTiff -m $MetadataJson `
+python ".\scripts\t-raster-translate.py" --output $CombinedTiff -m $MetadataJson `
  $VrtFile -b "" -f
 

@@ -1,0 +1,65 @@
+name: dafab
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - pip
+
+  # Geospatial core
+  - gdal
+  - rasterio
+  - geopandas
+  - fiona
+  - shapely
+  - pyproj
+  - rtree
+  - rioxarray
+  - netcdf4
+  - xarray
+  - datacube
+  - scikit-image
+  - opencv
+
+  # Machine learning / numerical
+  - numpy
+  - scipy
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - onnxruntime
+
+  # STAC + ODCE tools
+  - odc-stac
+  - odc-geo
+  - odc-algo
+
+  # Web / IO
+  - aiohttp
+  - boto3
+  - s3fs
+  - requests
+
+  # Visualization / interactive
+  - jupyterlab
+  - ipykernel
+  - ipywidgets
+  - ipyleaflet
+  - folium
+
+  # Utility
+  - tqdm
+  - click
+  - python-dotenv
+  - pyyaml
+  - dask
+  - dask-image
+
+  # Install the rest via pip if needed
+  - pip:
+      - pysheds
+      - planetary-computer
+      - pystac
+      - pystac-client
+      - dataclasses-json
+      - lxml
