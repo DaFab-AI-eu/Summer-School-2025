@@ -51,3 +51,40 @@ Added an `environment.yml` file which can be used to easily build (`conda env cr
 Run the script
 
 `python .\convert2onnx_terratorch.py -i "terramind_v1\\checkpoints.ckpt" -c "terramind_v1\\config.yaml" -o "terramind_v1_base_sen1floods11_s_896_without_clouds.onnx"` 
+
+# Run Geo Foundation Model finetuning & inference
+
+notebook `Water_detection_v1.ipynd`
+
+
+1. Setup [5 min]
+  *   Runtime
+  *   Installations
+  *   Mount Google Drive
+  *   Dataset download
+
+2. Sen1Floods11 Dataset [15 min]
+
+  *   Overview
+  *   Visualizations
+  *   Dataset preparation
+3. Finetuning Geo Foundation Models (TerraMind / Prithvi) [20 min]
+
+  *   Tensorboard
+  *   Configuration file
+  *   Finetuning for 5 epochs
+  *   Test metrics for trained model
+
+4. Inference
+
+Sentinel-2 product search [10 min]
+- Web interface
+- STAC API in Python
+
+Inference workflow on Sentinel-2 product [20 min]
+- ONNX conversion
+- Inference steps explanation
+- Run
+- Visualizations outputs
+
+5. Q & A [10 min]

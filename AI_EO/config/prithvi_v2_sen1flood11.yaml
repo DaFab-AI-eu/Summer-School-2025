@@ -98,6 +98,9 @@ model:
     freeze_backbone: false
     freeze_decoder: false
     plot_on_val: false #10 #true
+    class_names:
+      - Others
+      - Flood
 data:
   class_path: terratorch.datamodules.Sen1Floods11NonGeoDataModule
   init_args:
